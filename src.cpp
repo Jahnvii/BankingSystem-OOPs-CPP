@@ -61,8 +61,29 @@ class Bank {
     vector<Account*> accounts;
     string adminUsername = "admin";
     string adminPassword = "admin123";
+    bool isAdmin = false;
+
 public:
+    bool adminLogin() {
+        string inputUsername, inputPassword;
+        cout << "Enter Admin Username: ";
+        cin >> inputUsername;
+        cout << "Enter Admin Password: ";
+        cin >> inputPassword;
+        if (inputUsername == adminUsername && inputPassword == adminPassword) {
+            cout << "Admin Access Granted!" << endl;
+            isAdmin = true;
+            return true;
+        } else {
+            cout << "Incorrect Username or Password!" << endl;
+            return false;
+        }
+    }
     void createAccount(string name, double initialBalance, bool isSavings, double interestRate = 0) {
+        if (!isAdmin) {
+            cout << "Access Denied! Only admin can create accounts." << endl;
+            return;
+        }
         Account* newAccount;
         if (isSavings) {
             newAccount = new SavingsAccount(name, initialBalance, interestRate);
@@ -71,6 +92,21 @@ public:
         }
         accounts.push_back(newAccount);
         cout << "Account created successfully! Your Account Number is: " << newAccount->getAccountNumber() << endl;
+    }
+    void deleteAccount(int accNo) {
+        if (!isAdmin) {
+            cout << "Access Denied! Only admin can delete accounts." << endl;
+            return;
+        }
+        for (auto it = accounts.begin(); it != accounts.end(); ++it) {
+            if ((*it)->getAccountNumber() == accNo) {
+                delete *it;
+                accounts.erase(it);
+                cout << "Account deleted successfully!" << endl;
+                return;
+            }
+        }
+        cout << "Account not found!" << endl;
     }
     void deposit(int accNo, double amount) {
         for (auto acc : accounts) {
@@ -99,54 +135,6 @@ public:
         }
         cout << "Account not found!" << endl;
     }
-    void showTransactionHistory(int accNo) {
-        for (auto acc : accounts) {
-            if (acc->getAccountNumber() == accNo) {
-                acc->showTransactionHistory();
-                return;
-            }
-        }
-        cout << "Account not found!" << endl;
-    }
-    void deleteAccount(int accNo) {
-        for (auto it = accounts.begin(); it != accounts.end(); ++it) {
-            if ((*it)->getAccountNumber() == accNo) {
-                delete *it;
-                accounts.erase(it);
-                cout << "Account deleted successfully!" << endl;
-                return;
-            }
-        }
-        cout << "Account not found!" << endl;
-    }
-    void transferFunds(int fromAccNo, int toAccNo, double amount) {
-        Account* fromAcc = nullptr;
-        Account* toAcc = nullptr;
-        for (auto acc : accounts) {
-            if (acc->getAccountNumber() == fromAccNo) fromAcc = acc;
-            if (acc->getAccountNumber() == toAccNo) toAcc = acc;
-        }
-        if (fromAcc && toAcc) {
-            if (fromAcc->withdraw(amount)) {
-                toAcc->deposit(amount);
-                cout << "Transfer successful!" << endl;
-            }
-        } else {
-            cout << "One or both accounts not found!" << endl;
-        }
-    }
-    void adminLogin() {
-        string inputUsername, inputPassword;
-        cout << "Enter Admin Username: ";
-        cin >> inputUsername;
-        cout << "Enter Admin Password: ";
-        cin >> inputPassword;
-        if (inputUsername == adminUsername && inputPassword == adminPassword) {
-            cout << "Admin Access Granted!" << endl;
-        } else {
-            cout << "Incorrect Username or Password!" << endl;
-        }
-    }
     ~Bank() {
         for (auto acc : accounts) delete acc;
     }
@@ -154,25 +142,27 @@ public:
 
 int main() {
     Bank bank;
-    int choice, accNo, toAccNo;
+    int choice, accNo;
     string name;
     double amount, interestRate;
     bool isSavings;
-
+    
+    cout << "Admin login required to proceed." << endl;
+    if (!bank.adminLogin()) {
+        return 0;
+    }
+    
     while (true) {
         cout << "\nBank Management System";
         cout << "\n1. Open an Account";
         cout << "\n2. Show Account Details";
         cout << "\n3. Deposit Money";
         cout << "\n4. Withdraw Money";
-        cout << "\n5. Show Transaction History";
-        cout << "\n6. Delete an Account";
-        cout << "\n7. Transfer Funds";
-        cout << "\n8. Admin Login";
-        cout << "\n9. Exit";
+        cout << "\n5. Delete an Account";
+        cout << "\n6. Exit";
         cout << "\nEnter your choice: ";
         cin >> choice;
-
+        
         switch (choice) {
             case 1:
                 cout << "Enter Name: ";
@@ -207,23 +197,11 @@ int main() {
                 bank.withdraw(accNo, amount);
                 break;
             case 5:
-                cout << "Enter Account Number: ";
+                cout << "Enter Account Number to Delete: ";
                 cin >> accNo;
-                bank.showTransactionHistory(accNo);
+                bank.deleteAccount(accNo);
                 break;
-            case 7:
-                cout << "Enter Your Account Number: ";
-                cin >> accNo;
-                cout << "Enter Recipient Account Number: ";
-                cin >> toAccNo;
-                cout << "Enter Amount to Transfer: ";
-                cin >> amount;
-                bank.transferFunds(accNo, toAccNo, amount);
-                break;
-            case 8:
-                bank.adminLogin();
-                break;
-            case 9:
+            case 6:
                 return 0;
             default:
                 cout << "Invalid choice!" << endl;
